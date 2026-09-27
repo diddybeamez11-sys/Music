@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
@@ -7,56 +6,50 @@ import '../models/catalog_track.dart';
 import 'preferences_store.dart';
 
 class PlaybackController extends ChangeNotifier {
-  PlaybackController(this._store) {
-    _ready = _initialize();
+  PlaybackController(PreferencesStore _) : _handler = AuroraAudioHandler() {
+    _handler.player.playerStateStream.listen((_) => notifyListeners());
+    _handler.current.addListener(notifyListeners);
+    _initializeAudioService();
   }
 
-  final PreferencesStore _store;
-  AuroraAudioHandler? _handler;
-  late final Future<void> _ready;
+  final AuroraAudioHandler _handler;
   String? error;
 
-  Future<void> _initialize() async {
+  /// Register background/notification support without delaying the player.
+  /// The handler owns a just_audio player already, so a tap can start playback
+  /// even while Android is still connecting the media-service notification.
+  Future<void> _initializeAudioService() async {
     try {
-      final handler = await AudioService.init(
-        builder: AuroraAudioHandler.new,
+      await AudioService.init(
+        builder: () => _handler,
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'aurora_playback',
           androidNotificationChannelName: 'Aurora playback',
           androidNotificationOngoing: true,
         ),
-      ).timeout(const Duration(seconds: 15));
-      _handler = handler;
-      handler.player.playerStateStream.listen((_) => notifyListeners());
-      handler.current.addListener(notifyListeners);
+      );
     } catch (_) {
-      error = 'Playback service is unavailable.';
+      // Playback still works in the foreground through just_audio. Only the
+      // Android notification and lock-screen integration are unavailable.
+      error = 'Background playback service is unavailable.';
+      notifyListeners();
     }
-    notifyListeners();
   }
 
-  Stream<Duration> get position => _handler?.player.positionStream ?? const Stream.empty();
-  Stream<Duration?> get duration => _handler?.player.durationStream ?? const Stream.empty();
-  LocalTrack? get current => _handler?.current.value;
-  bool get playing => _handler?.player.playing ?? false;
-  bool get shuffle => _handler?.player.shuffleModeEnabled ?? false;
-  LoopMode get loopMode => _handler?.player.loopMode ?? LoopMode.off;
-  /// Queue the user's first tap until the audio service has finished starting.
-  /// Previously these taps were discarded while the service initialized.
-  Future<void> _whenReady(Future<void> Function(AuroraAudioHandler handler) action) async {
-    await _ready;
-    final handler = _handler;
-    if (handler != null) await action(handler);
-  }
-
-  Future<void> play(List<LocalTrack> tracks, int index) => _whenReady((handler) => handler.playTracks(tracks, index));
-  Future<void> playCatalog(List<CatalogTrack> tracks, int index) => _whenReady((handler) => handler.playCatalogTracks(tracks, index));
-  Future<void> toggle() => _whenReady((handler) => playing ? handler.pause() : handler.play());
-  Future<void> next() => _whenReady((handler) => handler.skipToNext());
-  Future<void> previous() => _whenReady((handler) => handler.skipToPrevious());
-  Future<void> seek(Duration value) => _whenReady((handler) => handler.seek(value));
-  Future<void> toggleShuffle() => _whenReady((handler) => handler.setShuffleMode(!shuffle ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none));
-  Future<void> cycleRepeat() => _whenReady((handler) => handler.setRepeatMode(loopMode == LoopMode.off ? AudioServiceRepeatMode.all : loopMode == LoopMode.all ? AudioServiceRepeatMode.one : AudioServiceRepeatMode.none));
+  Stream<Duration> get position => _handler.player.positionStream;
+  Stream<Duration?> get duration => _handler.player.durationStream;
+  LocalTrack? get current => _handler.current.value;
+  bool get playing => _handler.player.playing;
+  bool get shuffle => _handler.player.shuffleModeEnabled;
+  LoopMode get loopMode => _handler.player.loopMode;
+  Future<void> play(List<LocalTrack> tracks, int index) => _handler.playTracks(tracks, index);
+  Future<void> playCatalog(List<CatalogTrack> tracks, int index) => _handler.playCatalogTracks(tracks, index);
+  Future<void> toggle() => playing ? _handler.pause() : _handler.play();
+  Future<void> next() => _handler.skipToNext();
+  Future<void> previous() => _handler.skipToPrevious();
+  Future<void> seek(Duration value) => _handler.seek(value);
+  Future<void> toggleShuffle() => _handler.setShuffleMode(!shuffle ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none);
+  Future<void> cycleRepeat() => _handler.setRepeatMode(loopMode == LoopMode.off ? AudioServiceRepeatMode.all : loopMode == LoopMode.all ? AudioServiceRepeatMode.one : AudioServiceRepeatMode.none);
 }
 
 class AuroraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
