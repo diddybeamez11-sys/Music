@@ -1,0 +1,27 @@
+name: aurora_music
+description: A private, offline-first Android music player.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  audio_service: ^0.18.15
+  just_audio: ^0.9.39
+  on_audio_query: ^2.9.0
+  permission_handler: ^11.3.1
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
+  uuid: ^4.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

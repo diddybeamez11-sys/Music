@@ -1,0 +1,64 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [work, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Test and build release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set up Gradle for wrapper generation
+        run: |
+          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q /tmp/gradle.zip -d /opt
+          echo '/opt/gradle-8.7/bin' >> "$GITHUB_PATH"
+
+      # This repository intentionally does not commit a Flutter-generated
+      # wrapper. Create it in CI after Flutter has supplied the local SDK path.
+      - name: Create Android Gradle wrapper
+        working-directory: android
+        run: |
+          printf 'flutter.sdk=%s\n' "$FLUTTER_ROOT" > local.properties
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+
+      - name: Fetch Dart packages
+        run: flutter pub get
+
+      - name: Run unit tests
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
