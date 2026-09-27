@@ -20,7 +20,8 @@ class LibraryController extends ChangeNotifier {
 
   Future<void> load() async {
     favorites = _store.favorites; playlists = _store.playlists; recentIds = _store.recentIds;
-    final granted = await Permission.audio.request().isGranted || await Permission.storage.request().isGranted;
+    final granted = (await Permission.audio.request()).isGranted ||
+        (await Permission.storage.request()).isGranted;
     if (!granted) { loading = false; permissionDenied = true; notifyListeners(); return; }
     final songs = await _query.querySongs(uriType: UriType.EXTERNAL, ignoreCase: true);
     tracks = songs.where((song) => song.isMusic && (song.uri ?? song.data).isNotEmpty).map(LocalTrack.fromSong).toList();
