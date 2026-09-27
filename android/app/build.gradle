@@ -5,5 +5,12 @@ android { namespace 'com.aurora.music'; compileSdk 36
     sourceCompatibility JavaVersion.VERSION_17
     targetCompatibility JavaVersion.VERSION_17
   }
+  buildTypes {
+    release {
+      // Use the generated debug key until a production signing key is supplied.
+      // This produces the app-release.apk that the CI artifact step publishes.
+      signingConfig signingConfigs.debug
+    }
+  }
 }
 flutter { source '../..' }
