@@ -9,7 +9,7 @@ import 'preferences_store.dart';
 class PlaybackController extends ChangeNotifier {
   PlaybackController._(this._handler, this._store) {
     _handler.player.playerStateStream.listen((_) => notifyListeners());
-    _handler.current.listen((_) => notifyListeners());
+    _handler.current.addListener(notifyListeners);
   }
   final AuroraAudioHandler _handler;
   final PreferencesStore _store;

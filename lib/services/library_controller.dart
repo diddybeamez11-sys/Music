@@ -24,7 +24,7 @@ class LibraryController extends ChangeNotifier {
         (await Permission.storage.request()).isGranted;
     if (!granted) { loading = false; permissionDenied = true; notifyListeners(); return; }
     final songs = await _query.querySongs(uriType: UriType.EXTERNAL, ignoreCase: true);
-    tracks = songs.where((song) => song.isMusic && (song.uri ?? song.data).isNotEmpty).map(LocalTrack.fromSong).toList();
+    tracks = songs.where((song) => (song.isMusic ?? false) && (song.uri ?? song.data).isNotEmpty).map(LocalTrack.fromSong).toList();
     loading = false; permissionDenied = false; notifyListeners();
   }
 
