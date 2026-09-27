@@ -34,9 +34,9 @@ jobs:
 
       - name: Set up Gradle for wrapper generation
         run: |
-          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
           unzip -q /tmp/gradle.zip -d /opt
-          echo '/opt/gradle-8.7/bin' >> "$GITHUB_PATH"
+          echo '/opt/gradle-8.14.3/bin' >> "$GITHUB_PATH"
 
       # This repository intentionally does not commit a Flutter-generated
       # wrapper. Create it in CI after Flutter has supplied the local SDK path.
@@ -44,7 +44,7 @@ jobs:
         working-directory: android
         run: |
           printf 'flutter.sdk=%s\n' "$FLUTTER_ROOT" > local.properties
-          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          gradle wrapper --gradle-version 8.14.3 --distribution-type bin
 
       - name: Fetch Dart packages
         run: flutter pub get
