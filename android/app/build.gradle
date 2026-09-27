@@ -1,0 +1,17 @@
+plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android'; id 'dev.flutter.flutter-gradle-plugin' }
+android { namespace 'com.aurora.music'; compileSdk 36
+  ndkVersion '28.2.13676358'
+  defaultConfig { applicationId 'com.aurora.music'; minSdk 24; targetSdk 36; versionCode 1; versionName '1.0' }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+  buildTypes {
+    release {
+      // Use the generated debug key until a production signing key is supplied.
+      // This produces the app-release.apk that the CI artifact step publishes.
+      signingConfig signingConfigs.debug
+    }
+  }
+}
+flutter { source '../..' }

@@ -1,0 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../services/library_controller.dart';
+import '../../services/catalog_controller.dart';
+import '../../services/playback_controller.dart';
+import '../widgets/track_tile.dart';
+import '../widgets/catalog_track_tile.dart';
+class SearchScreen extends StatefulWidget { const SearchScreen({super.key}); @override State<SearchScreen> createState() => _SearchScreenState(); }
+class _SearchScreenState extends State<SearchScreen> { var query = ''; @override Widget build(BuildContext context) { final l = context.watch<LibraryController>(); final catalog = context.watch<CatalogController>(); final results = query.isEmpty ? <dynamic>[] : l.matches(query); return SafeArea(child: Column(children: [Padding(padding: const EdgeInsets.fromLTRB(20, 24, 20, 12), child: TextField(onChanged: (v) { setState(() => query = v); context.read<CatalogController>().search(v); }, autofocus: true, decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search open music and your library', filled: true, border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(16))))),), Expanded(child: query.isEmpty ? Center(child: Text('Search ${catalog.providerName} or this device')) : ListView(children: [if (results.isNotEmpty) const Padding(padding: EdgeInsets.fromLTRB(20, 10, 20, 4), child: Text('ON THIS DEVICE')), ...results.map((track) => TrackTile(track: track, queue: results.cast())), if (catalog.loading) const LinearProgressIndicator(), if (catalog.error != null) Padding(padding: const EdgeInsets.all(20), child: Text(catalog.error!)), if (catalog.results.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(20, 22, 20, 4), child: Text(catalog.providerName.toUpperCase())), ...catalog.results.map((track) => CatalogTrackTile(track: track, queue: catalog.results))]))])); } }
