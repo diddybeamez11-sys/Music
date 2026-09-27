@@ -7,28 +7,47 @@ import '../models/catalog_track.dart';
 import 'preferences_store.dart';
 
 class PlaybackController extends ChangeNotifier {
-  PlaybackController._(this._handler, this._store) {
-    _handler.player.playerStateStream.listen((_) => notifyListeners());
-    _handler.current.addListener(notifyListeners);
+  PlaybackController(this._store) {
+    _initialize();
   }
-  final AuroraAudioHandler _handler;
+
   final PreferencesStore _store;
-  static Future<PlaybackController> create(PreferencesStore store) async => PlaybackController._(
-    await AudioService.init(builder: AuroraAudioHandler.new, config: const AudioServiceConfig(androidNotificationChannelId: 'aurora_playback', androidNotificationChannelName: 'Aurora playback', androidNotificationOngoing: true)), store);
-  Stream<Duration> get position => _handler.player.positionStream;
-  Stream<Duration?> get duration => _handler.player.durationStream;
-  LocalTrack? get current => _handler.current.value;
-  bool get playing => _handler.player.playing;
-  bool get shuffle => _handler.player.shuffleModeEnabled;
-  LoopMode get loopMode => _handler.player.loopMode;
-  Future<void> play(List<LocalTrack> tracks, int index) async => _handler.playTracks(tracks, index);
-  Future<void> playCatalog(List<CatalogTrack> tracks, int index) => _handler.playCatalogTracks(tracks, index);
-  Future<void> toggle() => playing ? _handler.pause() : _handler.play();
-  Future<void> next() => _handler.skipToNext();
-  Future<void> previous() => _handler.skipToPrevious();
-  Future<void> seek(Duration value) => _handler.seek(value);
-  Future<void> toggleShuffle() => _handler.setShuffleMode(!shuffle ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none);
-  Future<void> cycleRepeat() => _handler.setRepeatMode(loopMode == LoopMode.off ? AudioServiceRepeatMode.all : loopMode == LoopMode.all ? AudioServiceRepeatMode.one : AudioServiceRepeatMode.none);
+  AuroraAudioHandler? _handler;
+  String? error;
+
+  Future<void> _initialize() async {
+    try {
+      final handler = await AudioService.init(
+        builder: AuroraAudioHandler.new,
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'aurora_playback',
+          androidNotificationChannelName: 'Aurora playback',
+          androidNotificationOngoing: true,
+        ),
+      );
+      _handler = handler;
+      handler.player.playerStateStream.listen((_) => notifyListeners());
+      handler.current.addListener(notifyListeners);
+    } catch (_) {
+      error = 'Playback service is unavailable.';
+    }
+    notifyListeners();
+  }
+
+  Stream<Duration> get position => _handler?.player.positionStream ?? const Stream.empty();
+  Stream<Duration?> get duration => _handler?.player.durationStream ?? const Stream.empty();
+  LocalTrack? get current => _handler?.current.value;
+  bool get playing => _handler?.player.playing ?? false;
+  bool get shuffle => _handler?.player.shuffleModeEnabled ?? false;
+  LoopMode get loopMode => _handler?.player.loopMode ?? LoopMode.off;
+  Future<void> play(List<LocalTrack> tracks, int index) => _handler?.playTracks(tracks, index) ?? Future.value();
+  Future<void> playCatalog(List<CatalogTrack> tracks, int index) => _handler?.playCatalogTracks(tracks, index) ?? Future.value();
+  Future<void> toggle() => _handler == null ? Future.value() : (playing ? _handler!.pause() : _handler!.play());
+  Future<void> next() => _handler?.skipToNext() ?? Future.value();
+  Future<void> previous() => _handler?.skipToPrevious() ?? Future.value();
+  Future<void> seek(Duration value) => _handler?.seek(value) ?? Future.value();
+  Future<void> toggleShuffle() => _handler?.setShuffleMode(!shuffle ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none) ?? Future.value();
+  Future<void> cycleRepeat() => _handler?.setRepeatMode(loopMode == LoopMode.off ? AudioServiceRepeatMode.all : loopMode == LoopMode.all ? AudioServiceRepeatMode.one : AudioServiceRepeatMode.none) ?? Future.value();
 }
 
 class AuroraAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
