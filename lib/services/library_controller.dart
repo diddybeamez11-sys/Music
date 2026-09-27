@@ -19,13 +19,24 @@ class LibraryController extends ChangeNotifier {
   bool permissionDenied = false;
 
   Future<void> load() async {
-    favorites = _store.favorites; playlists = _store.playlists; recentIds = _store.recentIds;
-    final granted = (await Permission.audio.request()).isGranted ||
-        (await Permission.storage.request()).isGranted;
-    if (!granted) { loading = false; permissionDenied = true; notifyListeners(); return; }
-    final songs = await _query.querySongs(uriType: UriType.EXTERNAL, ignoreCase: true);
-    tracks = songs.where((song) => (song.isMusic ?? false) && (song.uri ?? song.data).isNotEmpty).map(LocalTrack.fromSong).toList();
-    loading = false; permissionDenied = false; notifyListeners();
+    try {
+      favorites = _store.favorites; playlists = _store.playlists; recentIds = _store.recentIds;
+      final granted = (await Permission.audio.request()).isGranted ||
+          (await Permission.storage.request()).isGranted;
+      if (!granted) {
+        permissionDenied = true;
+        return;
+      }
+      final songs = await _query.querySongs(uriType: UriType.EXTERNAL, ignoreCase: true);
+      tracks = songs.where((song) => (song.isMusic ?? false) && (song.uri ?? song.data).isNotEmpty).map(LocalTrack.fromSong).toList();
+      permissionDenied = false;
+    } catch (_) {
+      // A failed MediaStore query should still leave the rest of the app usable.
+      permissionDenied = true;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
   }
 
   List<LocalTrack> get recent => recentIds.map(_byId).whereType<LocalTrack>().toList();
