@@ -1,1 +1,12 @@
 allprojects { repositories { google(); mavenCentral() } }
+
+// on_audio_query_android 1.1.0 predates AGP's required namespace DSL.
+// Supply its manifest package as the namespace until the plugin publishes an
+// AGP-compatible Android module.
+subprojects { project ->
+  project.plugins.withId('com.android.library') {
+    if (project.name == 'on_audio_query_android' && project.android.namespace == null) {
+      project.android.namespace = 'com.lucasjosino.on_audio_query'
+    }
+  }
+}
