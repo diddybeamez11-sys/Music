@@ -44,7 +44,15 @@ jobs:
         working-directory: android
         run: |
           printf 'flutter.sdk=%s\n' "$FLUTTER_ROOT" > local.properties
-          gradle wrapper --gradle-version 8.14.3 --distribution-type bin
+          for attempt in 1 2 3; do
+            if gradle --no-daemon wrapper --gradle-version 8.14.3 --distribution-type bin; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((attempt * 20))"
+          done
 
       - name: Fetch Dart packages
         run: flutter pub get
